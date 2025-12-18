@@ -1,0 +1,51 @@
+// Copyright (c) 2025 TaxiEditor
+//
+// TaxiEditor is licensed under the MIT License.
+// See the LICENSE file for details.
+
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "os"
+)
+
+// Config is the root config.json structure
+type Config struct {
+    WowDataPath     string     `json:"wow_data_path"`
+}
+
+// loadOrInitConfig loads config.json, or generates a template if missing
+func loadOrInitConfig(path string) (*Config, bool, error) {
+    if _, err := os.Stat(path); os.IsNotExist(err) {
+        // Create template config
+        template := Config{
+            WowDataPath: "/path/to/wow/data",
+        }
+
+        data, err := json.MarshalIndent(template, "", "  ")
+        if err != nil {
+            return nil, false, fmt.Errorf("marshal template: %w", err)
+        }
+
+        if err := os.WriteFile(path, data, 0644); err != nil {
+            return nil, false, fmt.Errorf("write template: %w", err)
+        }
+
+        return nil, true, nil
+    }
+
+    // Load existing config
+    file, err := os.Open(path)
+    if err != nil {
+        return nil, false, fmt.Errorf("open config: %w", err)
+    }
+    defer file.Close()
+
+    var cfg Config
+    if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+        return nil, false, fmt.Errorf("decode config: %w", err)
+    }
+    return &cfg, false, nil
+}
